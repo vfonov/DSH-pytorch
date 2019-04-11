@@ -50,7 +50,8 @@ def compute_result(dataloader, net):
     net.eval()
     for img, cls in dataloader:
         clses.append(cls)
-        bs.append(net(Variable(img.cuda(), volatile=True)).data.cpu())
+        with torch.no_grad():
+           bs.append( net(img.cuda()).cpu())
     return torch.sign(torch.cat(bs)), torch.cat(clses)
 
 
@@ -63,7 +64,7 @@ def compute_mAP(trn_binary, tst_binary, trn_label, tst_label):
     for x in trn_binary, tst_binary, trn_label, tst_label: x.long()
 
     AP = []
-    Ns = torch.arange(1, trn_binary.size(0) + 1)
+    Ns = torch.arange(1, trn_binary.size(0) + 1).float()
     for i in range(tst_binary.size(0)):
         query_label, query_binary = tst_label[i], tst_binary[i]
         _, query_result = torch.sum((query_binary != trn_binary).long(), dim=1).sort()

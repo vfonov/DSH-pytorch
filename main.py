@@ -26,7 +26,7 @@ def train(epoch, dataloader, net, optimizer, m, alpha):
     accum_loss = 0
     net.train()
     for i, (img, cls) in enumerate(dataloader):
-        img, cls = [Variable(x.cuda()) for x in (img, cls)]
+        img, cls = [x.cuda() for x in (img, cls)]
 
         net.zero_grad()
         b = net(img)
@@ -34,21 +34,22 @@ def train(epoch, dataloader, net, optimizer, m, alpha):
 
         loss.backward()
         optimizer.step()
-        accum_loss += loss.data[0]
+        accum_loss += float(loss)
 
-        print(f'[{epoch}][{i}/{len(dataloader)}] loss: {loss.data[0]:.4f}')
+        print(f'[{epoch}][{i}/{len(dataloader)}] loss: {float(loss):.4f}')
     return accum_loss / len(dataloader)
 
 
 def test(epoch, dataloader, net, m, alpha):
     accum_loss = 0
     net.eval()
-    for img, cls in dataloader:
-        img, cls = [Variable(x.cuda(), volatile=True) for x in (img, cls)]
+    with torch.no_grad():
+      for img, cls in dataloader:
+          img, cls = [x.cuda() for x in (img, cls)]
 
-        b = net(img)
-        loss = hashing_loss(b, cls, m, alpha)
-        accum_loss += loss.data[0]
+          b = net(img)
+          loss = hashing_loss(b, cls, m, alpha)
+          accum_loss += float(loss)
 
     accum_loss /= len(dataloader)
     print(f'[{epoch}] val loss: {accum_loss:.4f}')
