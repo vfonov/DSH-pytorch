@@ -87,7 +87,7 @@ def main():
     print(net)
     if opt.weights:
         print(f'loading weight form {opt.weights}')
-        resume_epoch = int(os.path.basename(opt.weights)[:-4])
+        resume_epoch = int(os.path.basename(opt.weights)[:-4]) # assume last 4 digits is epoch
         net.load_state_dict(torch.load(opt.weights, map_location=lambda storage, location: storage))
 
     net.cuda()
@@ -111,8 +111,10 @@ def main():
             logger.add_scalar('retrieval_mAP', mAP, epoch)
 
             # save checkpoints
-            torch.save(net.state_dict(), os.path.join(opt.outf, f'{epoch:03d}.pth'))
+            torch.save(net.state_dict(), os.path.join(opt.outf, f'{epoch:04d}.pth'))
 
+    # save final result
+    torch.save(net.state_dict(), os.path.join(opt.outf, f'final.pth'))
 
 if __name__ == '__main__':
     main()
