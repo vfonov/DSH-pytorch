@@ -67,6 +67,7 @@ def main():
 
     parser.add_argument('--batchSize', type=int, default=1024, help='input batch size')
     parser.add_argument('--ngpu', type=int, default=0, help='which GPU to use')
+    parser.add_argument('--workers', type=int, default=4, help='number of workers for the image loader')
 
     parser.add_argument('--binary_bits', type=int, default=12, help='length of hashing binary')
     parser.add_argument('--alpha', type=float, default=0.01, help='weighting of regularizer')
@@ -81,8 +82,8 @@ def main():
     choose_gpu(opt.ngpu)
     feed_random_seed()
     if opt.imagenet is not None:
-        train_loader, test_loader = init_imagenet_dataloader(opt.imagenet, opt.batchSize)
-    else:    
+        train_loader, test_loader = init_imagenet_dataloader(opt.imagenet, opt.batchSize,opt.workers)
+    else:
         train_loader, test_loader = init_cifar_dataloader(opt.cifar, opt.batchSize)
     logger = SummaryWriter()
 
@@ -118,6 +119,9 @@ def main():
 
             # save checkpoints
             torch.save(net.state_dict(), os.path.join(opt.outf, f'{epoch:04d}.pth'))
+        elif opt.imagenet is not None:
+            # image net might take too long , so save avery epoch
+            torch.save(net.state_dict(), os.path.join(opt.outf, 'last.pth'))
 
     # save final result
     torch.save(net.state_dict(), os.path.join(opt.outf, f'final.pth'))

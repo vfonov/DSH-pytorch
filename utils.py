@@ -11,7 +11,7 @@ from torchvision import datasets
 import torchvision.transforms as transforms
 import os
 
-def init_imagenet_dataloader(root, batchSize):
+def init_imagenet_dataloader(root, batchSize,workers=4):
     """load dataset"""
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                       std=[0.229, 0.224, 0.225])
@@ -30,7 +30,7 @@ def init_imagenet_dataloader(root, batchSize):
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batchSize, shuffle=True,
-        num_workers=4, pin_memory=True, sampler=None)
+        num_workers=workers, pin_memory=True, sampler=None)
 
     print(f'train set: {len(train_loader.dataset)}')
 
@@ -42,7 +42,7 @@ def init_imagenet_dataloader(root, batchSize):
             normalize,
         ])),
         batch_size=batchSize, shuffle=False,
-        num_workers=4, pin_memory=True)
+        num_workers=workers, pin_memory=True)
 
     print(f'val set: {len(test_loader.dataset)}')
 
