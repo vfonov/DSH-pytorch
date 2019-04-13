@@ -40,9 +40,7 @@ def main():
     opt = parser.parse_args()
     print(opt)
 
-    os.makedirs(opt.outf, exist_ok=True)
     choose_gpu(opt.ngpu)
-    feed_random_seed()
     assert( opt.imagenet is not None)
     assert( opt.weights )
 
@@ -59,23 +57,21 @@ def main():
 
     bs=[]
     clses=[]
-    dummy=torch.pow(2,torch.arange(opt.binary_bits)).unsquueze(1)
+    dummy=torch.pow(2,torch.arange(opt.binary_bits)).unsqueeze(0).cuda()
     with torch.no_grad():
-        cnt=0
         for img, c in train_loader:
             # convert into a binary code
-            bs.extend( torch.sum(torch.sign(net(img.cuda())).long().clamp(0,1)*dummy,1).split(1) )
-            clses.append(c.split(1))
-            # debug
-            cnt+=1
-            if cnt>1000: break
-        
+            out=torch.sign(net(img.cuda())).long().clamp(0,1)
+            bs.extend( [ int(i) for i in  torch.sum(out*dummy,1).cpu() ] )
+            clses.extend( [ int(i) for i in c] )
+
     # save index
-    
+    pfx=opt.imagenet+os.sep
     with open(opt.output,'w') as f:
         f.write("idx,cls,hash\n")
-        for i,_ in enumerate(bs):
-            f.write(f'{i},{int(clses[i])},{int(bs[i])}')
+
+        for b,c,i in zip(bs, clses, train_loader.dataset.samples ):
+            f.write("{},{},{}\n".format(i[0].replace(pfx,'') ,i[1], b))
 
 if __name__ == '__main__':
     main()
