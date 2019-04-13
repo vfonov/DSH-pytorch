@@ -58,12 +58,14 @@ def test(epoch, dataloader, net, m, alpha):
 
 def main():
     parser = argparse.ArgumentParser(description='train DSH')
-    parser.add_argument('--cifar', default='../dataset/cifar', help='path to cifar')
+    parser.add_argument('--cifar', default='../dataset/cifar', help='path to CIFAR')
+    parser.add_argument('--imagenet', default=None, help='Use ImageNet instead of CIFAR')
+
     parser.add_argument('--weights', default='', help="path to weight (to continue training)")
     parser.add_argument('--outf', default='checkpoints', help='folder to output model checkpoints')
     parser.add_argument('--checkpoint', type=int, default=50, help='checkpointing after batches')
 
-    parser.add_argument('--batchSize', type=int, default=256, help='input batch size')
+    parser.add_argument('--batchSize', type=int, default=1024, help='input batch size')
     parser.add_argument('--ngpu', type=int, default=0, help='which GPU to use')
 
     parser.add_argument('--binary_bits', type=int, default=12, help='length of hashing binary')
@@ -78,16 +80,20 @@ def main():
     os.makedirs(opt.outf, exist_ok=True)
     choose_gpu(opt.ngpu)
     feed_random_seed()
-    train_loader, test_loader = init_cifar_dataloader(opt.cifar, opt.batchSize)
+    if opt.imagenet is not None:
+        train_loader, test_loader = init_imagenet_dataloader(opt.imagenet, opt.batchSize)
+    else:    
+        train_loader, test_loader = init_cifar_dataloader(opt.cifar, opt.batchSize)
     logger = SummaryWriter()
 
     # setup net
     net = DSH(opt.binary_bits)
     resume_epoch = 0
     print(net)
+
     if opt.weights:
         print(f'loading weight form {opt.weights}')
-        resume_epoch = int(os.path.basename(opt.weights)[:-4]) # assume last 4 digits is epoch
+        #resume_epoch = int(os.path.basename(opt.weights)[:-4])
         net.load_state_dict(torch.load(opt.weights, map_location=lambda storage, location: storage))
 
     net.cuda()
