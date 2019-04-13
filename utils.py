@@ -11,36 +11,40 @@ from torchvision import datasets
 import torchvision.transforms as transforms
 import os
 
-def init_imagenet_dataloader(root, batchSize,workers=4):
+def init_imagenet_dataloader(root, batchSize, workers=4, indexing=False):
     """load dataset"""
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                       std=[0.229, 0.224, 0.225])
 
     traindir = os.path.join(root, 'train')
-    valdir = os.path.join(root, 'val')
+    valdir   = os.path.join(root, 'val')
 
-    train_dataset = datasets.ImageFolder(
-        traindir,
-        transform=transforms.Compose([
+    training_transform = transforms.Compose([
             transforms.RandomResizedCrop(32),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
-        ]))
+        ])
+
+    testing_transform = transforms.Compose([
+            transforms.Resize(32),
+            transforms.CenterCrop(32),
+            transforms.ToTensor(),
+            normalize,
+        ])
+
+    train_dataset = datasets.ImageFolder(
+        traindir,
+        transform=testing_transform if indexing else training_transform)
 
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=batchSize, shuffle=True,
+        train_dataset, batch_size=batchSize, shuffle=not indexing,
         num_workers=workers, pin_memory=True, sampler=None)
 
     print(f'train set: {len(train_loader.dataset)}')
 
     test_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(valdir, transform=transforms.Compose([
-            transforms.Resize(32),
-            transforms.CenterCrop(32),
-            transforms.ToTensor(),
-            normalize,
-        ])),
+        datasets.ImageFolder(valdir, transform=testing_transform),
         batch_size=batchSize, shuffle=False,
         num_workers=workers, pin_memory=True)
 
