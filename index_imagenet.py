@@ -25,13 +25,14 @@ def test(epoch, dataloader, net, m, alpha):
 
 def main():
     parser = argparse.ArgumentParser(description='train DSH')
-    parser.add_argument('--imagenet', default=None, help='Use ImageNet instead of CIFAR')
+    parser.add_argument('--imagenet', default=None, help='ImageNet path')
+    parser.add_argument('--validation', default=False, action='store_true', help='use validation set')
 
     parser.add_argument('--weights', default='', help="path to weight (to continue training)")
 
     parser.add_argument('--batchSize', type=int, default=1024, help='input batch size')
     parser.add_argument('--ngpu', type=int, default=0, help='which GPU to use')
-    parser.add_argument('--workers', type=int, default=4, help='number of workers for the image loader')
+    parser.add_argument('--workers', type=int, default=1, help='number of workers for the image loader')
 
     parser.add_argument('--binary_bits', type=int, default=14, help='length of hashing binary')
     parser.add_argument('--alpha', type=float, default=0.01, help='weighting of regularizer')
@@ -45,6 +46,8 @@ def main():
     assert( opt.weights )
 
     train_loader, test_loader = init_imagenet_dataloader(opt.imagenet, opt.batchSize,opt.workers,indexing=True)
+    loader  = test_loader if opt.validation else train_loader
+
     logger = SummaryWriter()
 
     # setup net
@@ -59,7 +62,7 @@ def main():
     clses=[]
     dummy=torch.pow(2,torch.arange(opt.binary_bits)).unsqueeze(0).cuda()
     with torch.no_grad():
-        for img, c in train_loader:
+        for img, c in loader:
             # convert into a binary code
             out=torch.sign(net(img.cuda())).long().clamp(0,1)
             bs.extend( [ int(i) for i in  torch.sum(out*dummy,1).cpu() ] )
@@ -70,7 +73,7 @@ def main():
     with open(opt.output,'w') as f:
         f.write("idx,cls,hash\n")
 
-        for b,c,i in zip(bs, clses, train_loader.dataset.samples ):
+        for b,c,i in zip(bs, clses, loader.dataset.samples ):
             f.write("{},{},{}\n".format(i[0].replace(pfx,'') ,i[1], b))
 
 if __name__ == '__main__':
