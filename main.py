@@ -113,7 +113,7 @@ def main():
 
         if epoch % opt.checkpoint == 0:
             # compute mAP by searching testset images from trainset
-            if opt.imagenet is not None: #  takes too long for imagenet
+            if opt.imagenet is None: #  takes too long for imagenet
               trn_binary, trn_label = compute_result(train_loader, net)
               tst_binary, tst_label = compute_result(test_loader, net)
               mAP = compute_mAP(trn_binary, tst_binary, trn_label, tst_label)
