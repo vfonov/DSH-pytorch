@@ -48,8 +48,6 @@ def main():
     train_loader, test_loader = init_imagenet_dataloader(opt.imagenet, opt.batchSize,opt.workers,indexing=True)
     loader  = test_loader if opt.validation else train_loader
 
-    logger = SummaryWriter()
-
     # setup net
     net = DSH(opt.binary_bits)
     print(net)
