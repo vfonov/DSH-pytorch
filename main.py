@@ -22,7 +22,7 @@ def hashing_loss(b, cls, m, alpha):
     return loss
 
 
-def train(epoch, dataloader, net, optimizer, m, alpha):
+def train(epoch, dataloader, net, optimizer, m, alpha, logger ):
     accum_loss = 0
     net.train()
     for i, (img, cls) in enumerate(dataloader):
@@ -31,12 +31,13 @@ def train(epoch, dataloader, net, optimizer, m, alpha):
         net.zero_grad()
         b = net(img)
         loss = hashing_loss(b, cls, m, alpha)
-
         loss.backward()
         optimizer.step()
         accum_loss += float(loss)
+        logger.add_scalar('loss',  loss, epoch*len(dataloader)+i)
 
         print(f'[{epoch}][{i}/{len(dataloader)}] loss: {float(loss):.4f}')
+
     return accum_loss / len(dataloader)
 
 
@@ -52,6 +53,7 @@ def test(epoch, dataloader, net, m, alpha):
           accum_loss += float(loss)
 
     accum_loss /= len(dataloader)
+
     print(f'[{epoch}] val loss: {accum_loss:.4f}')
     return accum_loss
 
@@ -103,19 +105,20 @@ def main():
     optimizer = optim.Adam(net.parameters(), lr=opt.lr, weight_decay=0.004)
 
     for epoch in range(resume_epoch, opt.niter):
-        train_loss = train(epoch, train_loader, net, optimizer, 2 * opt.binary_bits, opt.alpha)
+        train_loss = train(epoch, train_loader, net, optimizer, 2 * opt.binary_bits, opt.alpha, logger )
         logger.add_scalar('train_loss', train_loss, epoch)
 
-        test_loss = test(epoch, test_loader, net, 2 * opt.binary_bits, opt.alpha)
+        test_loss = test(epoch, test_loader, net, 2 * opt.binary_bits, opt.alpha )
         logger.add_scalar('test_loss', test_loss, epoch)
 
         if epoch % opt.checkpoint == 0:
             # compute mAP by searching testset images from trainset
-            trn_binary, trn_label = compute_result(train_loader, net)
-            tst_binary, tst_label = compute_result(test_loader, net)
-            mAP = compute_mAP(trn_binary, tst_binary, trn_label, tst_label)
-            print(f'[{epoch}] retrieval mAP: {mAP:.4f}')
-            logger.add_scalar('retrieval_mAP', mAP, epoch)
+            if opt.imagenet is not None: #  takes too long for imagenet
+              trn_binary, trn_label = compute_result(train_loader, net)
+              tst_binary, tst_label = compute_result(test_loader, net)
+              mAP = compute_mAP(trn_binary, tst_binary, trn_label, tst_label)
+              print(f'[{epoch}] retrieval mAP: {mAP:.4f}')
+              logger.add_scalar('retrieval_mAP', mAP, epoch)
 
             # save checkpoints
             torch.save(net.state_dict(), os.path.join(opt.outf, f'{epoch:04d}.pth'))
